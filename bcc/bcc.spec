@@ -101,6 +101,7 @@ cd bcc
 
 cd bcc
 %cmake . \
+    -DPYTHON_CMD=python3 \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     -DCMAKE_VERBOSE_MAKEFILE=0
 

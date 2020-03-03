@@ -3,11 +3,10 @@
 #
 # $Title: Script to build bpftrace on CentOS 7.7+ $
 # $Copyright: 2020 Devin Teske. All rights reserved. $
-# $FrauBSD: el8-bpf-specs/build-all.sh 2020-03-03 11:46:48 -0800 freebsdfrau $
+# $FrauBSD: el8-bpf-specs/build-all.sh 2020-03-03 12:31:38 -0800 freebsdfrau $
 #
 ############################################################ ENVIRONMENT
 
-: "${PYTHON_CMD:=python3}"
 : "${REDHAT:=$( cat /etc/redhat-release )}"
 : "${UNAME_p:=$( uname -p )}"
 : "${UNAME_r:=$( uname -r )}"
@@ -345,7 +344,6 @@ esac
 # Build and install bcc
 # NB: bpftrace dependency
 #
-eval2 export "PYTHON_CMD=\"$PYTHON_CMD\""
 eval2 build -x lua bcc
 files=$( rpmfiles -x lua bcc/bcc.$spec ) # with lua = false
 eval2 rpm_uninstall $files # Only uninstalls if version is wrong
