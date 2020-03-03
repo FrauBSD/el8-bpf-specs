@@ -3,7 +3,7 @@
 #
 # $Title: Script to build bpftrace on CentOS 7.7+ $
 # $Copyright: 2020 Devin Teske. All rights reserved. $
-# $FrauBSD: el8-bpf-specs/build-all.sh 2020-03-03 14:25:34 -0800 freebsdfrau $
+# $FrauBSD: el8-bpf-specs/build-all.sh 2020-03-03 15:57:10 -0800 freebsdfrau $
 #
 ############################################################ ENVIRONMENT
 
@@ -259,7 +259,9 @@ rpm_install()
 
 rpm_uninstall()
 {
-	local also file installed name path to_uninstall=
+	local also changes deps file found installed name path
+	local exists=
+	local to_uninstall=
 	for path in $*; do
 		file="${path##*/}"
 		name="${file%%-[0-9]*}"
@@ -268,12 +270,28 @@ rpm_uninstall()
 		to_uninstall="$to_uninstall $installed"
 	done
 	if [ "$to_uninstall" ]; then
-		also=$( eval2 rpm -qP $to_uninstall |
-			awk '(sub(/ .*/,"")||1)&&!_[$0]++' |
-			xargs rpm -q --whatrequires |
-			awk '!/^no package/' )
-		eval2 sudo rpm -e $to_uninstall $also \|\| : errors ignored
-		local exists=
+		deps="$to_uninstall"
+		while :; do
+			deps=$( eval2 rpm -qP $deps |
+				awk '(sub(/ .*/,"")||1)&&!_[$0]++' |
+				xargs rpm -q --whatrequires |
+				awk '!/^no package/'
+			)
+			changes=
+			for also in $deps; do
+				found=
+				for name in $to_uninstall; do
+					[ "$name" = "$also" ] || continue
+					found=1
+					break
+				done
+				[ "$found" ] && continue
+				to_uninstall="$to_uninstall $also"
+				changes=1
+			done
+			[ "$changes" ] || break
+		done
+		eval2 sudo rpm -e $to_uninstall \|\| : errors ignored
 		for path in $*; do
 			file="${path##*/}"
 			name="${file%%-[0-9]*}"
