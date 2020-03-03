@@ -3,7 +3,7 @@
 #
 # $Title: Script to build bpftrace on CentOS 7.7+ $
 # $Copyright: 2020 Devin Teske. All rights reserved. $
-# $FrauBSD: el8-bpf-specs/build-all.sh 2020-03-03 14:11:18 -0800 freebsdfrau $
+# $FrauBSD: el8-bpf-specs/build-all.sh 2020-03-03 14:25:34 -0800 freebsdfrau $
 #
 ############################################################ ENVIRONMENT
 
@@ -259,7 +259,7 @@ rpm_install()
 
 rpm_uninstall()
 {
-	local path file name installed to_uninstall=
+	local also file installed name path to_uninstall=
 	for path in $*; do
 		file="${path##*/}"
 		name="${file%%-[0-9]*}"
@@ -268,7 +268,11 @@ rpm_uninstall()
 		to_uninstall="$to_uninstall $installed"
 	done
 	if [ "$to_uninstall" ]; then
-		eval2 sudo rpm -e $to_uninstall \|\| : errors ignored
+		also=$( eval2 rpm -qP $to_uninstall |
+			awk '(sub(/ .*/,"")||1)&&!_[$0]++' |
+			xargs rpm -q --whatrequires |
+			awk '!/^no package/' )
+		eval2 sudo rpm -e $to_uninstall $also \|\| : errors ignored
 		local exists=
 		for path in $*; do
 			file="${path##*/}"
