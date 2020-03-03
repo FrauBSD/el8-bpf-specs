@@ -100,6 +100,7 @@ cd bcc
 %build
 
 cd bcc
+export PYTHON_CMD=python3
 %cmake3 . \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     -DCMAKE_VERBOSE_MAKEFILE=0
