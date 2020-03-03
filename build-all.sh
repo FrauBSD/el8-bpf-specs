@@ -3,10 +3,11 @@
 #
 # $Title: Script to build bpftrace on CentOS 7.7+ $
 # $Copyright: 2020 Devin Teske. All rights reserved. $
-# $FrauBSD: el8-bpf-specs/build-all.sh 2020-03-02 23:06:20 -0800 freebsdfrau $
+# $FrauBSD: el8-bpf-specs/build-all.sh 2020-03-03 11:46:48 -0800 freebsdfrau $
 #
 ############################################################ ENVIRONMENT
 
+: "${PYTHON_CMD:=python3}"
 : "${REDHAT:=$( cat /etc/redhat-release )}"
 : "${UNAME_p:=$( uname -p )}"
 : "${UNAME_r:=$( uname -r )}"
@@ -193,9 +194,9 @@ build()
 
 	eval2 spectool -g -R $tool.$spec || die
 	local needed dep to_install=
-	needed=$( deps $tool.$spec ) || die
+	needed=$( eval2 deps $tool.$spec ) || die
 	for dep in $needed; do
-		if eval2 quietly rpm -q $dep; then
+		if quietly rpm -q $dep; then
 			printf "\033[32m%s installed\033[39m\n" "$dep"
 		else
 			printf "\033[33m%s not installed\033[39m\n" "$dep"
@@ -323,16 +324,16 @@ spec=spec
 case "$REDHAT" in
 *" 7."*)
 	spec=spec7
-	build bpftool
+	eval2 build bpftool
 	eval2 rpm_install $( rpmfiles bpftool/bpftool.$spec )
 	if ! quietly rpm -q ebpftoolsbuilder-llvm-clang; then
-		build llvm-clang
+		eval2 build llvm-clang
 		eval2 rpm_uninstall clang clang-devel llvm llvm-devel
 		eval2 rpm_install $( rpmfiles llvm-clang/llvm-clang.$spec )
 	fi
 	;;
 *" 8.0"*)
-	build bpftool
+	eval2 build bpftool
 	eval2 rpm_install $( rpmfiles bpftool/bpftool.$spec )
 	;;
 *" 8."*)
@@ -344,7 +345,8 @@ esac
 # Build and install bcc
 # NB: bpftrace dependency
 #
-build -x lua bcc
+eval2 export "PYTHON_CMD=\"$PYTHON_CMD\""
+eval2 build -x lua bcc
 files=$( rpmfiles -x lua bcc/bcc.$spec ) # with lua = false
 eval2 rpm_uninstall $files # Only uninstalls if version is wrong
 eval2 rpm_install $files
@@ -361,10 +363,10 @@ eval2 yum_install $needed
 #
 # Build and install bpftrace
 #
-build bpftrace
-#build bpftrace --with static
-#build bpftrace --with git
-#build bpftrace --with git --with static
+eval2 build bpftrace
+#eval2 build bpftrace --with static
+#eval2 build bpftrace --with git
+#eval2 build bpftrace --with git --with static
 eval2 rpm_install $( rpmfiles bpftrace/bpftrace.$spec )
 
 #

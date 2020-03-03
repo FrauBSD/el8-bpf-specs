@@ -12,10 +12,10 @@ Patch0:         0001-Disable-kprobe-blacklisting-as-it-is-not-supported-o.patch
 ExclusiveArch:  x86_64
 
 BuildRequires:  bison
-BuildRequires:  cmake3
+BuildRequires:  cmake
 BuildRequires:  flex
 BuildRequires:  libxml2-devel
-BuildRequires:  python3-devel
+BuildRequires:  python36-devel
 BuildRequires:  elfutils-libelf-devel
 BuildRequires:  ncurses-devel
 BuildRequires:  make
@@ -100,8 +100,7 @@ cd bcc
 %build
 
 cd bcc
-export PYTHON_CMD=python3
-%cmake3 . \
+%cmake . \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     -DCMAKE_VERBOSE_MAKEFILE=0
 
