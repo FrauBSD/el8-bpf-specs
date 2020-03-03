@@ -15,12 +15,12 @@ BuildRequires:  bison
 BuildRequires:  cmake3
 BuildRequires:  flex
 BuildRequires:  libxml2-devel
-BuildRequires:  python3-devel
+BuildRequires:  python-devel
 BuildRequires:  elfutils-libelf-devel
 BuildRequires:  ncurses-devel
 BuildRequires:  make
-BuildRequires:  llvm-toolset
-BuildRequires:  clang-devel
+BuildRequires:  devtoolset-8-runtime
+BuildRequires:  ebpftoolsbuilder-llvm-clang
 BuildRequires:  git
 
 Requires:       %{name}-tools = %{version}-%{release}
@@ -99,6 +99,7 @@ cd bcc
 
 %build
 
+. /opt/rh/devtoolset-8/enable
 cd bcc
 %cmake3 . \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
@@ -153,7 +154,7 @@ rm -rf %{buildroot}%{_datadir}/%{name}/tools/old/
 %{_includedir}/%{name}/
 
 %files -n python-%{name}
-%{python3_sitelib}/%{name}*
+%{python_sitelib}/%{name}*
 
 %files doc
 %dir %{_docdir}/%{name}

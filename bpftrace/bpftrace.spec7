@@ -46,18 +46,18 @@ BuildRequires:  flex
 BuildRequires:  cmake3
 BuildRequires:  elfutils-libelf-devel
 BuildRequires:  zlib-devel
-BuildRequires:  llvm-toolset
-BuildRequires:  clang-devel
+BuildRequires:  devtoolset-8-runtime
+BuildRequires:  ebpftoolsbuilder-llvm-clang-libs
 
 # For static:
-#?BuildRequires:  bcc-devel
-#?BuildRequires:  bcc-static
-#?BuildRequires:  glibc-static
-#?BuildRequires:  zlib-static
-#?BuildRequires:  ncurses-static
-#?BuildRequires:  elfutils-libelf-devel-static
-#?BuildRequires:  ebpftoolsbuilder-llvm-clang
-#?BuildRequires:  binutils-devel
+BuildRequires:  bcc-devel
+BuildRequires:  bcc-static
+BuildRequires:  glibc-static
+BuildRequires:  zlib-static
+BuildRequires:  ncurses-static
+BuildRequires:  elfutils-libelf-devel-static
+BuildRequires:  ebpftoolsbuilder-llvm-clang
+BuildRequires:  binutils-devel
 
 Requires:       kernel-devel
 Requires:       binutils
@@ -112,6 +112,7 @@ git checkout %{commitid}
 %endif
 
 %build
+. /opt/rh/devtoolset-8/enable
 %cmake3 . \
   -DCMAKE_BUILD_TYPE=Debug \
   -DBUILD_TESTING:BOOL=OFF \

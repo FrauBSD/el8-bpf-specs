@@ -3,7 +3,7 @@
 #
 # $Title: Script to build bpftrace on CentOS 7.7+ $
 # $Copyright: 2020 Devin Teske. All rights reserved. $
-# $FrauBSD: el8-bpf-specs/build-all.sh 2020-03-02 22:32:19 -0800 freebsdfrau $
+# $FrauBSD: el8-bpf-specs/build-all.sh 2020-03-02 23:06:20 -0800 freebsdfrau $
 #
 ############################################################ ENVIRONMENT
 
@@ -56,7 +56,7 @@ rpmfilenames()
 
 	spec="$1"
 
-	case "$( cat /etc/redhat-release )" in
+	case "$REDHAT" in
 	*" 7."*) dist=.el7 ;;
 	*" 8."*) dist=.el8 ;;
 	esac
@@ -143,6 +143,7 @@ build()
 {
 	local OPTIND=1 OPTARG flag
 	local exclude=
+	local spec
 	local tool
 
 	while getopts x: flag; do
@@ -154,6 +155,11 @@ build()
 
 	tool="$1"
 
+	spec=spec
+	case "$REDHAT" in
+	*" 7."*) spec=spec7 ;;
+	esac
+
 	if have figlet; then
 		printf "\033[36m%s\033[m\n" "$( figlet "$tool" )"
 	else
@@ -162,7 +168,8 @@ build()
 
 	local file name
 	local exists=1
-	for file in $( rpmfiles ${exclude:+-x"$exclude"} $tool/$tool.spec ); do
+	for file in $( rpmfiles ${exclude:+-x"$exclude"} $tool/$tool.$spec )
+	do
 		name="${file##*/}"
 		if [ -e "$file" ]; then
 			printf "\033[32m%s exists\033[39m\n" "$file"
@@ -184,9 +191,9 @@ build()
 		eval2 cp $p ~/rpmbuild/SOURCES/ || die
 	done
 
-	eval2 spectool -g -R $tool.spec || die
+	eval2 spectool -g -R $tool.$spec || die
 	local needed dep to_install=
-	needed=$( deps $tool.spec ) || die
+	needed=$( deps $tool.$spec ) || die
 	for dep in $needed; do
 		if eval2 quietly rpm -q $dep; then
 			printf "\033[32m%s installed\033[39m\n" "$dep"
@@ -196,7 +203,7 @@ build()
 		fi
 	done
 	[ ! "$to_install" ] || eval2 sudo yum install -y $to_install || die
-	( eval2 rpmbuild -bb $tool.spec $*; echo EXIT:$? ) 2>&1 | awk '
+	( eval2 rpmbuild -bb $tool.$spec $*; echo EXIT:$? ) 2>&1 | awk '
 		BEGIN { err = "error: failed to stat .*: "
 			err = err "No such file or directory" }
 		sub(/^EXIT:/, "") { exit_status = $0; next }
@@ -292,7 +299,7 @@ shift $(( $OPTIND - 1 ))
 #
 needed="gcc rpmdevtools"
 case "$REDHAT" in
-*" 7."*) [ -e /opt/rh/devtoolset-8/enable ] ||
+*" 7."*)
 	# Tested on 7.7.1908
 	needed="$needed devtoolset-8-runtime"
 	;;
@@ -312,18 +319,25 @@ eval2 yum_install $needed
 #
 # Install bcc build-dependencies
 #
+spec=spec
 case "$REDHAT" in
 *" 7."*)
+	spec=spec7
 	build bpftool
+	eval2 rpm_install $( rpmfiles bpftool/bpftool.$spec )
 	if ! quietly rpm -q ebpftoolsbuilder-llvm-clang; then
 		build llvm-clang
 		eval2 rpm_uninstall clang clang-devel llvm llvm-devel
-		eval2 rpm_install $( rpmfiles llvm-clang/llvm-clang.spec )
+		eval2 rpm_install $( rpmfiles llvm-clang/llvm-clang.$spec )
 	fi
 	;;
+*" 8.0"*)
+	build bpftool
+	eval2 rpm_install $( rpmfiles bpftool/bpftool.$spec )
+	;;
 *" 8."*)
-	# 8.0: Untested
-	# 8.1: bpftool-4.18.0-147.el8.x86_64 from BaseOS OK
+	eval2 yum_install bpftool # from BaseOS
+	;;
 esac
 
 #
@@ -331,7 +345,7 @@ esac
 # NB: bpftrace dependency
 #
 build -x lua bcc
-files=$( rpmfiles -x lua bcc/bcc.spec ) # with lua = false
+files=$( rpmfiles -x lua bcc/bcc.$spec ) # with lua = false
 eval2 rpm_uninstall $files # Only uninstalls if version is wrong
 eval2 rpm_install $files
 
@@ -351,7 +365,7 @@ build bpftrace
 #build bpftrace --with static
 #build bpftrace --with git
 #build bpftrace --with git --with static
-eval2 rpm_install $( rpmfiles bpftrace/bpftrace.spec )
+eval2 rpm_install $( rpmfiles bpftrace/bpftrace.$spec )
 
 #
 # All software built

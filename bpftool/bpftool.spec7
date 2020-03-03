@@ -7,9 +7,12 @@ URL: http://www.kernel.org/
 Source0: https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-%{version}.tar.xz
 Patch0: 0001-build-static.patch
 
+BuildRequires: elfutils-libelf-devel-static
+BuildRequires: zlib-static
 BuildRequires: gcc
 BuildRequires: make
-BuildRequires: python3-docutils
+BuildRequires: glibc-static
+BuildRequires: python-docutils
 
 %description
 This package contains the bpftool, which allows inspection and simple
