@@ -76,7 +76,7 @@ Standalone tool to run BCC tracers written in Lua
 %package tools
 Summary:        Command line tools for BPF Compiler Collection (BCC)
 Requires:       python-%{name} = %{version}-%{release}
-Requires:       python-netaddr
+Requires:       python3-netaddr
 Requires:       kernel-devel
 
 %description tools
