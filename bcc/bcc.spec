@@ -113,11 +113,11 @@ cd bcc
 %make_install
 cp src/cc/*.a %{buildroot}%{_libdir}
 
-# # Fix python shebangs
-# find %{buildroot}%{_datadir}/%{name}/{tools,examples} -type f -exec \
-#   sed -i -e '1s=^#!/usr/bin/python\([0-9.]\+\)\?$=#!%{__python3}=' \
-#          -e '1s=^#!/usr/bin/env python\([0-9.]\+\)\?$=#!%{__python3}=' \
-#          -e '1s=^#!/usr/bin/env bcc-lua$=#!/usr/bin/bcc-lua=' {} \;
+# Fix python shebangs
+find %{buildroot}%{_datadir}/%{name}/{tools,examples} -type f -exec \
+  sed -i -e '1s=^#!/usr/bin/python\([0-9.]\+\)\?$=#!%{__python3}=' \
+         -e '1s=^#!/usr/bin/env python\([0-9.]\+\)\?$=#!%{__python3}=' \
+         -e '1s=^#!/usr/bin/env bcc-lua$=#!/usr/bin/bcc-lua=' {} \;
 
 # # Move man pages to the right location
 mkdir -p %{buildroot}%{_mandir}
