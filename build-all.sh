@@ -3,11 +3,25 @@
 #
 # $Title: Script to build bpftrace on CentOS 7.7+ $
 # $Copyright: 2020 Devin Teske. All rights reserved. $
-# $FrauBSD: el8-bpf-specs/build-all.sh 2020-03-03 15:57:10 -0800 freebsdfrau $
+# $FrauBSD: el8-bpf-specs/build-all.sh 2020-05-31 06:46:30 +0000 freebsdfrau $
 #
 ############################################################ ENVIRONMENT
 
-: "${REDHAT:=$( cat /etc/redhat-release )}"
+if [ -e /etc/redhat-release ]; then
+	: "${OS:=RedHat}"
+	: "${REDHAT:=$( cat /etc/redhat-release )}"
+elif [ -e /etc/os-release ]; then
+	: "${OS:=$( awk 'sub(/^NAME="?/, "") {
+		sub(/"$/,"")
+		print
+	}' /etc/os-release )}"
+	case "$OS" in
+	Ubuntu) : "${UBUNTU:=$( awk 'sub(/^VERSION="?/, "") {
+			sub(/"$/, "")
+			print
+		}' /etc/os-release )}" ;;
+	esac
+fi
 : "${UNAME_p:=$( uname -p )}"
 : "${UNAME_r:=$( uname -r )}"
 
@@ -143,11 +157,13 @@ build()
 {
 	local OPTIND=1 OPTARG flag
 	local exclude=
+	local nodeps=
 	local spec
 	local tool
 
-	while getopts x: flag; do
+	while getopts nx: flag; do
 		case "$flag" in
+		n) nodeps=1 ;;
 		x) exclude="$OPTARG" ;;
 		esac
 	done
@@ -155,10 +171,18 @@ build()
 
 	tool="$1"
 
-	spec=spec
-	case "$REDHAT" in
-	*" 7."*) spec=spec7 ;;
+	case "$OS" in
+	RedHat)
+		spec=spec
+		case "$REDHAT" in
+		*" 7."*) spec=spec7 ;;
+		esac
+		;;
+	Ubuntu)
+		spec=uspec
+		;;
 	esac
+
 
 	if have figlet; then
 		printf "\033[36m%s\033[m\n" "$( figlet "$tool" )"
@@ -193,17 +217,22 @@ build()
 
 	eval2 spectool -g -R $tool.$spec || die
 	local needed dep to_install=
-	needed=$( eval2 deps $tool.$spec ) || die
-	for dep in $needed; do
-		if quietly rpm -q $dep; then
-			printf "\033[32m%s installed\033[39m\n" "$dep"
-		else
-			printf "\033[33m%s not installed\033[39m\n" "$dep"
-			to_install="$to_install $dep"
-		fi
-	done
-	[ ! "$to_install" ] || eval2 sudo yum install -y $to_install || die
-	( eval2 rpmbuild -bb $tool.$spec $*; echo EXIT:$? ) 2>&1 | awk '
+	case "$OS" in
+	RedHat)
+		needed=$( eval2 deps $tool.$spec ) || die
+		for dep in $needed; do
+			if quietly rpm -q $dep; then
+				printf "\033[32m%s installed\033[39m\n" "$dep"
+			else
+				printf "\033[33m%s not installed\033[39m\n" "$dep"
+				to_install="$to_install $dep"
+			fi
+		done
+		[ ! "$to_install" ] || eval2 sudo yum install -y $to_install || die
+		;;
+	esac
+	( eval2 rpmbuild ${nodeps:+--nodeps} -bb $tool.$spec $*;
+		echo EXIT:$? ) 2>&1 | awk '
 		BEGIN { err = "error: failed to stat .*: "
 			err = err "No such file or directory" }
 		sub(/^EXIT:/, "") { exit_status = $0; next }
@@ -319,54 +348,94 @@ shift $(( $OPTIND - 1 ))
 #
 # Check system dependencies
 #
-needed="gcc rpmdevtools"
-case "$REDHAT" in
-*" 7."*)
-	# Tested on 7.7.1908
-	needed="$needed devtoolset-8-runtime"
+case "$OS" in
+RedHat)
+	needed="gcc rpmdevtools"
+	case "$REDHAT" in
+	*" 7."*)
+		# Tested on 7.7.1908
+		needed="$needed devtoolset-8-runtime"
+		;;
+	*" 8."*)
+		# Tested on 8.1.1911
+		needed="$needed gcc-c++"
+		needed="$needed llvm-toolset llvm-devel llvm-static"
+		needed="$needed clang-devel"
+		needed="$needed python3-netaddr"
+		;;
+	*)
+		die "Unknown RedHat release ($REDHAT)"
+	esac
+	needed="$needed kernel-devel-${UNAME_r%.$UNAME_p}"
+	eval2 sudo yum_install $needed
 	;;
-*" 8."*)
-	# Tested on 8.1.1911
-	needed="$needed gcc-c++"
-	needed="$needed llvm-toolset llvm-devel llvm-static"
-	needed="$needed clang-devel"
-	needed="$needed python3-netaddr"
+Ubuntu)
+	needed="gcc-8 rpm rpmdevtools"
+	case "$UBUNTU" in
+	*"18.04"*)
+		# Tested on 18.04.04
+		needed="$needed llvm-8-runtime llvm-8-tools clang-8"
+		needed="$needed libelf-dev"
+		needed="$needed python3-docutils"
+		needed="$needed bison cmake flex"
+		needed="$needed libclang-8-dev"
+		needed="$needed python3-distutils"
+		needed="$needed util-linux"
+		needed="$needed python3-netaddr"
+		;;
+	*)
+		die "Unknown Ubuntu release ($UBUNTU)"
+	esac
+	eval2 sudo apt-get install $needed
 	;;
 *)
-	die "Unknown RedHat release ($REDHAT)"
+	die "Unknown OS ($OS)"
 esac
-needed="$needed kernel-devel-${UNAME_r%.$UNAME_p}"
-eval2 yum_install $needed
 
 #
 # Install bcc build-dependencies
 #
-spec=spec
-case "$REDHAT" in
-*" 7."*)
-	spec=spec7
-	eval2 build bpftool
-	eval2 rpm_install $( rpmfiles bpftool/bpftool.$spec )
-	if ! quietly rpm -q ebpftoolsbuilder-llvm-clang; then
-		eval2 build llvm-clang
-		eval2 rpm_uninstall clang clang-devel llvm llvm-devel
-		eval2 rpm_install $( rpmfiles llvm-clang/llvm-clang.$spec )
-	fi
+case "$OS" in
+RedHat)
+	spec=spec
+	case "$REDHAT" in
+	*" 7."*)
+		spec=spec7
+		eval2 build bpftool
+		eval2 rpm_install $( rpmfiles bpftool/bpftool.$spec )
+		if ! quietly rpm -q ebpftoolsbuilder-llvm-clang; then
+			eval2 build llvm-clang
+			eval2 rpm_uninstall clang clang-devel llvm llvm-devel
+			eval2 rpm_install $( rpmfiles llvm-clang/llvm-clang.$spec )
+		fi
+		;;
+	*" 8.0"*)
+		eval2 build bpftool
+		eval2 rpm_install $( rpmfiles bpftool/bpftool.$spec )
+		;;
+	*" 8."*)
+		eval2 yum_install bpftool # from BaseOS
+		;;
+	esac
 	;;
-*" 8.0"*)
-	eval2 build bpftool
-	eval2 rpm_install $( rpmfiles bpftool/bpftool.$spec )
-	;;
-*" 8."*)
-	eval2 yum_install bpftool # from BaseOS
-	;;
+Ubuntu)
+	spec=uspec
+	case "$UBUNTU" in
+	*"18.04"*)
+		eval2 build -n bpftool
+		eval2 rpm_install $( rpmfiles bpftool/bpftool.$spec )
+		;;
+	esac
 esac
 
 #
 # Build and install bcc
 # NB: bpftrace dependency
 #
-eval2 build -x lua bcc
+case "$OS" in
+RedHat) eval2 build -x lua bcc ;;
+Ubuntu) eval2 build -x lua -n bcc ;;
+esac
 files=$( rpmfiles -x lua bcc/bcc.$spec ) # with lua = false
 eval2 rpm_uninstall $files # Only uninstalls if version is wrong
 eval2 rpm_install $files
@@ -374,16 +443,23 @@ eval2 rpm_install $files
 #
 # Install bpftrace build-dependencies
 #
-case "$REDHAT" in
-*" 7."*) needed="ncurses-static binutils-devel" ;;
-*" 8."*) needed="binutils-devel" ;;
+case "$OS" in
+RedHat)
+	case "$REDHAT" in
+	*" 7."*) needed="ncurses-static binutils-devel" ;;
+	*" 8."*) needed="binutils-devel" ;;
+	esac
+	eval2 yum_install $needed
+	;;
 esac
-eval2 yum_install $needed
 
 #
 # Build and install bpftrace
 #
-eval2 build bpftrace
+case "$OS" in
+Ubuntu) eval2 build -n bpftrace ;;
+RedHat) eval2 build bpftrace ;;
+esac
 #eval2 build bpftrace --with static
 #eval2 build bpftrace --with git
 #eval2 build bpftrace --with git --with static
