@@ -3,7 +3,7 @@
 #
 # $Title: Script to build bpftrace on CentOS 7.7+ $
 # $Copyright: 2020 Devin Teske. All rights reserved. $
-# $FrauBSD: el8-bpf-specs/build-all.sh 2020-06-01 03:28:13 +0000 freebsdfrau $
+# $FrauBSD: el8-bpf-specs/build-all.sh 2020-05-31 21:40:07 -0700 freebsdfrau $
 #
 ############################################################ ENVIRONMENT
 
@@ -541,6 +541,7 @@ RedHat)
 	*" 7."*)
 		# Tested on 7.7.1908
 		needed="$needed devtoolset-8-runtime"
+		needed="$needed kernel-devel-${UNAME_r%.$UNAME_p}"
 		;;
 	*" 8."*)
 		# Tested on 8.1.1911
@@ -548,11 +549,11 @@ RedHat)
 		needed="$needed llvm-toolset llvm-devel llvm-static"
 		needed="$needed clang-devel"
 		needed="$needed python3-netaddr"
+		needed="$needed kernel-devel"
 		;;
 	*)
 		die "Unknown RedHat release ($REDHAT)"
 	esac
-	needed="$needed kernel-devel-${UNAME_r%.$UNAME_p}"
 	eval2 os_install $needed
 	;;
 Ubuntu)

@@ -7,7 +7,6 @@ URL:            https://github.com/iovisor/bcc
 # Generate source tarball until upstream bug is fixed
 # See https://github.com/iovisor/bcc/issues/2261
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
-Patch0:         0001-Disable-kprobe-blacklisting-as-it-is-not-supported-o.patch
 
 ExclusiveArch:  x86_64
 
@@ -94,7 +93,6 @@ The %{name}-static package contains the static archives for BCC
 rm -rf bcc
 git clone %{url}
 cd bcc
-%patch0 -p1
 
 
 %build
@@ -114,14 +112,19 @@ cd bcc
 cp src/cc/*.a %{buildroot}%{_libdir}
 
 # Fix python shebangs
-find %{buildroot}%{_datadir}/%{name}/{tools,examples} -type f -exec \
+find %{buildroot}%{_datadir}/%{name}/tools \
+     %{buildroot}%{_datadir}/%{name}/examples -type f -exec \
   sed -i -e '1s=^#!/usr/bin/python\([0-9.]\+\)\?$=#!%{__python3}=' \
          -e '1s=^#!/usr/bin/env python\([0-9.]\+\)\?$=#!%{__python3}=' \
          -e '1s=^#!/usr/bin/env bcc-lua$=#!/usr/bin/bcc-lua=' {} \;
 
 # # Move man pages to the right location
 mkdir -p %{buildroot}%{_mandir}
-mv %{buildroot}%{_datadir}/%{name}/man/* %{buildroot}%{_mandir}/
+for dir in %{buildroot}%{_datadir}/%{name}/man/*; do
+  man=${dir##*/}
+  rm -rf %{buildroot}%{_mandir}/$man
+  mv $dir %{buildroot}%{_mandir}/$man
+done
 # Avoid conflict with other manpages
 # https://bugzilla.redhat.com/show_bug.cgi?id=1517408
 for i in `find %{buildroot}%{_mandir} -name "*.gz"`; do
@@ -129,7 +132,8 @@ for i in `find %{buildroot}%{_mandir} -name "*.gz"`; do
   rename $tname %{name}-$tname $i
 done
 mkdir -p %{buildroot}%{_docdir}/%{name}
-mv %{buildroot}%{_datadir}/%{name}/examples %{buildroot}%{_docdir}/%{name}/
+rm -rf %{buildroot}%{_docdir}/%{name}/examples
+mv %{buildroot}%{_datadir}/%{name}/examples %{buildroot}%{_docdir}/%{name}/examples
 
 # Delete old tools we don't want to ship
 rm -rf %{buildroot}%{_datadir}/%{name}/tools/old/
