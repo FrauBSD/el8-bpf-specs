@@ -43,11 +43,12 @@ ExclusiveArch:  x86_64
 
 BuildRequires:  bison
 BuildRequires:  flex
-BuildRequires:  cmake3
-BuildRequires:  elfutils-libelf-devel
-BuildRequires:  zlib-devel
-BuildRequires:  llvm-toolset
-BuildRequires:  clang-devel
+BuildRequires:  cmake
+BuildRequires:  libelf-dev
+BuildRequires:  zlib1g-dev
+BuildRequires:  llvm-8-tools
+BuildRequires:  clang-8
+BuildRequires:  libclang-8-dev
 
 # For static:
 #?BuildRequires:  bcc-devel

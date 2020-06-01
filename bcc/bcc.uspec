@@ -15,13 +15,15 @@ ExclusiveArch:  x86_64
 BuildRequires:  bison
 BuildRequires:  cmake
 BuildRequires:  flex
-BuildRequires:  libxml2-devel
-BuildRequires:  python36-devel
-BuildRequires:  elfutils-libelf-devel
-BuildRequires:  ncurses-devel
+BuildRequires:  libxml2-dev
+BuildRequires:  python3.6-dev
+BuildRequires:  libelf-dev
+BuildRequires:  libncurses5-dev
 BuildRequires:  make
-BuildRequires:  llvm-toolset
-BuildRequires:  clang-devel
+BuildRequires:  llvm-8-tools
+BuildRequires:  clang-8
+BuildRequires:  libclang-8-dev
+BuildRequires:  gcc-8
 BuildRequires:  git
 
 Requires:       %{name}-tools = %{version}-%{release}
