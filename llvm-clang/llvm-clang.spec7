@@ -9,8 +9,8 @@ Release:  0%{?dist}
 Summary:	The Low Level Virtual Machine
 License:	NCSA
 URL:		  http://llvm.org
-Source0:	http://llvm.org/releases/%{version}/llvm-%{version}.src.tar.xz
-Source1:	http://llvm.org/releases/%{version}/cfe-%{version}.src.tar.xz
+Source0:	https://releases.llvm.org/{version}/llvm-%{version}.src.tar.xz
+Source1:	https://releases.llvm.org/%{version}/cfe-%{version}.src.tar.xz
 
 ExclusiveArch:  x86_64
 

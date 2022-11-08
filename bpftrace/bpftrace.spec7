@@ -18,7 +18,7 @@
 %endif
 
 Name:           %{pkgname}%{?with_static:-static}
-Version:        0.9.3
+Version:        0.9.4
 %if %{with git}
 Release:        1.%{commitid}%{?dist}
 %else
